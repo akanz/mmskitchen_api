@@ -29,6 +29,6 @@ app.get("/", (req, res) => {
   res.send("API LANDING PAGE");
 });
 
-app.listen(PORT, () => {
+app.listen(process.env.PORT || PORT, () => {
   console.log(`Server started on port ${PORT}`);
 });
