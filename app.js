@@ -17,11 +17,11 @@ db.once("open", function () {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-const userRouter = require("./routes/users");
+const userRouter = require("./routes/user");
 const blogRouter = require("./routes/blog");
 const menuRouter = require("./routes/menu");
 
-app.use("/users", userRouter);
+app.use("/", userRouter);
 app.use("/posts", blogRouter);
 app.use("/menus", menuRouter);
 

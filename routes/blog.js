@@ -3,7 +3,8 @@ const express = require("express"),
 
 const Blogpost = require("../models/blog");
 const cloudinary = require("../utils/cloudinary");
-const upload = require("../utils/multer");
+const upload = require("../utils/multer"),
+  auth = require("../middleware/auth");
 
 // get all blog posts
 router.get("/", async (req, res) => {
@@ -16,7 +17,7 @@ router.get("/", async (req, res) => {
 });
 
 // create blog post
-router.post("/", upload.single("image"), async (req, res) => {
+router.post("/", auth, upload.single("image"), async (req, res) => {
   let imageFiles = req.file;
   if (!imageFiles) {
     return res.status(400).json({ message: "No Image attached" });
@@ -38,33 +39,39 @@ router.post("/", upload.single("image"), async (req, res) => {
 
 // get a blog post
 router.get("/:id", getApost, (req, res) => {
-  res.json(res.post);
+  res.status(200).json(res.post);
 });
 
 // update a blog post
-router.patch("/:id", getApost, upload.single("image"), async (req, res) => {
-  if (req.body.title != null) {
-    res.post.title = req.body.title;
+router.patch(
+  "/:id",
+  getApost,
+  auth,
+  upload.single("image"),
+  async (req, res) => {
+    if (req.body.title != null) {
+      res.post.title = req.body.title;
+    }
+    if (req.body.body != null) {
+      res.post.body = req.body.body;
+    }
+    if (!imageFiles) {
+      return res.status(400).json({ message: "No Image attached" });
+    } else {
+      const imgResult = await cloudinary.uploader.upload(req.file.path);
+      res.post.img = imgResult.secure_url;
+    }
+    try {
+      const updatedPost = await res.post.save();
+      res.status(200).json(updatedPost);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
   }
-  if (req.body.body != null) {
-    res.post.body = req.body.body;
-  }
-  if (!imageFiles) {
-    return res.status(400).json({ message: "No Image attached" });
-  } else {
-    const imgResult = await cloudinary.uploader.upload(req.file.path);
-    res.post.img = imgResult.secure_url;
-  }
-  try {
-    const updatedPost = await res.post.save();
-    res.status(200).json(updatedPost);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-});
+);
 
 // delete a blog post
-router.delete("/:id", getApost, async (req, res) => {
+router.delete("/:id", getApost, auth, async (req, res) => {
   try {
     await res.post.remove();
     res.status(200).json({ message: "Post successfully deleted" });

@@ -2,8 +2,8 @@ const express = require("express"),
   router = express.Router();
 const Menu = require("../models/menu");
 const cloudinary = require("../utils/cloudinary"),
-  upload = require("../utils/multer");
-
+  upload = require("../utils/multer"),
+  auth = require("../middleware/auth");
 
 // get all food menu
 router.get("/", async (req, res) => {
@@ -16,7 +16,7 @@ router.get("/", async (req, res) => {
 });
 
 // create food menu
-router.post("/", upload.single("image"), async (req, res) => {
+router.post("/", auth, upload.single("image"), async (req, res) => {
   let imageFiles = req.file;
   if (!imageFiles) {
     return res.status(400).json({ message: "No Image attached" });
@@ -43,30 +43,36 @@ router.get("/:id", getAMenu, (req, res) => {
 });
 
 // update a food menu
-router.patch("/:id", getAMenu, upload.single("image"), async (req, res) => {
-  if (req.body.name != null) {
-    res.data.name = req.body.name;
+router.patch(
+  "/:id",
+  getAMenu,
+  auth,
+  upload.single("image"),
+  async (req, res) => {
+    if (req.body.name != null) {
+      res.data.name = req.body.name;
+    }
+    if (req.body.desc != null) {
+      res.data.description = req.body.desc;
+    }
+    let imageFiles = req.file;
+    if (!imageFiles) {
+      return res.status(400).json({ message: "No Image attached" });
+    } else {
+      const imgResult = await cloudinary.uploader.upload(req.file.path);
+      res.data.img = imgResult.secure_url;
+    }
+    try {
+      const updatedPost = await res.data.save();
+      res.status(200).json(updatedPost);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
   }
-  if (req.body.desc != null) {
-    res.data.description = req.body.desc;
-  }
-  let imageFiles = req.file;
-  if (!imageFiles) {
-    return res.status(400).json({ message: "No Image attached" });
-  } else {
-    const imgResult = await cloudinary.uploader.upload(req.file.path);
-    res.data.img = imgResult.secure_url;
-  }
-  try {
-    const updatedPost = await res.data.save();
-    res.status(200).json(updatedPost);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-});
+);
 
 // delete a menu
-router.delete("/:id", getAMenu, async (req, res) => {
+router.delete("/:id", getAMenu, auth, async (req, res) => {
   try {
     await res.data.remove();
     res.status(200).json({ message: "Menu successfully deleted" });
@@ -74,7 +80,6 @@ router.delete("/:id", getAMenu, async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
-
 
 // get a menu by ID middleware
 async function getAMenu(req, res, next) {
