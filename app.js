@@ -1,7 +1,7 @@
 require("dotenv").config();
 const express = require("express"),
   mongoose = require("mongoose");
-
+const cors = require("cors");
 const app = express(),
   PORT = 5000;
 
@@ -16,6 +16,7 @@ db.once("open", function () {
 });
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cors());
 
 const userRouter = require("./routes/user");
 const blogRouter = require("./routes/blog");
